@@ -26,7 +26,7 @@ export function HistoryPage() {
     async function fetchHistory() {
       const [{ data: attemptsData }, quizzes] = await Promise.all([
         supabase
-          .from('quiz_attempts')
+          .from('st_quiz_attempts')
           .select('*')
           .eq('user_id', user.id)
           .order('completed_at', { ascending: false })

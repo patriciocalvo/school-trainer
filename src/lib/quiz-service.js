@@ -6,7 +6,7 @@ import { supabase } from './supabase'
  */
 export async function fetchSubjectsAndTopics() {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .select('subject, topic')
     .eq('is_published', true)
   if (error) throw error
@@ -24,7 +24,7 @@ export async function fetchSubjectsAndTopics() {
  */
 export async function fetchQuizzesByTopic(subject, topic) {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .select('id, title, subject, topic, subtopic, difficulty, questions')
     .eq('subject', subject)
     .eq('topic', topic)
@@ -40,7 +40,7 @@ export async function fetchQuizzesByTopic(subject, topic) {
  */
 export async function fetchQuizById(id) {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .select('*')
     .eq('id', id)
     .single()
@@ -54,7 +54,7 @@ export async function fetchQuizById(id) {
  */
 export async function fetchAllQuizzes() {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .select('id, title, subject, topic, difficulty, is_published, created_at')
     .order('subject')
     .order('topic')
@@ -69,7 +69,7 @@ export async function fetchAllQuizzes() {
  */
 export async function createQuiz(quiz) {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .insert(quiz)
     .select()
     .single()
@@ -84,7 +84,7 @@ export async function createQuiz(quiz) {
  */
 export async function updateQuiz(id, updates) {
   const { data, error } = await supabase
-    .from('quizzes')
+    .from('st_quizzes')
     .update(updates)
     .eq('id', id)
     .select()
@@ -98,6 +98,6 @@ export async function updateQuiz(id, updates) {
  * @param {string} id
  */
 export async function deleteQuiz(id) {
-  const { error } = await supabase.from('quizzes').delete().eq('id', id)
+  const { error } = await supabase.from('st_quizzes').delete().eq('id', id)
   if (error) throw error
 }

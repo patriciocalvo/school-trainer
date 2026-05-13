@@ -91,7 +91,7 @@ export function QuizPage() {
           return acc + (newAnswers[i] === q.answer ? 1 : 0)
         }, 0)
         setSaving(true)
-        await supabase.from('quiz_attempts').insert({
+        await supabase.from('st_quiz_attempts').insert({
           user_id: user.id,
           quiz_id: quiz.id,
           subject: quiz.subject,

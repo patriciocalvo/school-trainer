@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   async function fetchRole(uid) {
     if (!uid) { setRole(null); return }
     const { data } = await supabase
-      .from('profiles')
+      .from('st_profiles')
       .select('role')
       .eq('user_id', uid)
       .single()

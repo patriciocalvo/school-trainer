@@ -42,7 +42,7 @@ export function TopicPage() {
       if (!user || quizzes.length === 0) return
       const quizIds = quizzes.map((q) => q.id)
       const { data } = await supabase
-        .from('quiz_attempts')
+        .from('st_quiz_attempts')
         .select('quiz_id, score')
         .eq('user_id', user.id)
         .in('quiz_id', quizIds)

@@ -35,12 +35,12 @@ export function TeacherProgressPage() {
       try {
         const [attemptsRes, profilesRes] = await Promise.all([
           supabase
-            .from('quiz_attempts')
+            .from('st_quiz_attempts')
             .select('id, user_id, quiz_id, subject, topic, score, total_questions, completed_at')
             .order('completed_at', { ascending: true })
             .limit(500),
           supabase
-            .from('profiles')
+            .from('st_profiles')
             .select('user_id, display_name, email'),
         ])
         if (attemptsRes.error) throw attemptsRes.error

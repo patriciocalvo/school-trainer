@@ -45,7 +45,7 @@ All quiz content is stored in the **`quizzes` table** in Supabase. The build art
 Login and register form (email + password).
 
 ### `src/pages/HomePage.jsx`
-Subject selection grid. Subjects are auto-discovered from quiz files.
+Subject selection grid. Subjects are auto-discovered from the `quizzes` table.
 
 ### `src/pages/TopicPage.jsx`
 Lists quizzes within a subject/topic. Fetches best score per quiz from Supabase.

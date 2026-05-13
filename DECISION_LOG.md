@@ -51,8 +51,3 @@
 ### Tailwind CSS with Nunito font
 **Context:** App targets mobile/tablet (vertical). Needs to feel friendly for children.
 **Decision:** Tailwind for utility-first styling, Google Fonts Nunito for a rounded, readable feel.
-
-### Quiz file format: Markdown with frontmatter + `## N.` question headers
-**Context:** Format must be easy for an LLM to generate reliably.
-**Decision:** YAML frontmatter (parsed by `gray-matter`) + body split by `## N.` regex. Options as `- x) text` list items. Answer as `**Respuesta: x**`.
-**Rationale:** Simple, unambiguous, and grep-friendly. No custom DSL needed.

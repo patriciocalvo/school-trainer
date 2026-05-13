@@ -9,7 +9,7 @@
 **Project:** School Trainer
 **Type:** Web app (mobile/tablet-first)
 **Primary stack:** React (Vite, plain JavaScript) + Tailwind CSS + Supabase (Auth + PostgreSQL)
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-13
 
 ---
 
@@ -18,14 +18,12 @@
 ```
 [Browser — React SPA]
         │
-        ├── Reads .md quiz files (bundled at build time via import.meta.glob)
-        │
         └── Supabase JS SDK
                 ├── Auth (email/password)
-                └── PostgreSQL (quiz_attempts, profiles)
+                └── PostgreSQL (quizzes, quiz_attempts, profiles)
 ```
 
-All quiz content is **static** — bundled into the build artifact. The server only stores user accounts and score history.
+All quiz content is stored in the **`quizzes` table** in Supabase. The build artifact contains no quiz data — content is fetched at runtime.
 
 ---
 
@@ -35,17 +33,13 @@ All quiz content is **static** — bundled into the build artifact. The server o
 **Purpose:** Initializes and exports the Supabase client singleton.
 **Depends on:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` env vars.
 
-### `src/lib/quiz-parser.js`
-**Purpose:** Parses a raw `.md` string into a structured Quiz JS object.
-**Exposes:** `parseQuiz(rawMarkdown) → { id, title, subject, topic, subtopic, difficulty, questions[] }`
-
-### `src/lib/quiz-loader.js`
-**Purpose:** Loads all `.md` files at build time via `import.meta.glob` and exposes a flat map and nested index.
-**Exposes:** `quizMap` (id → Quiz), `quizIndex` (subject → topic → Quiz[]), `subjects` (string[]).
+### `src/lib/quiz-service.js`
+**Purpose:** All runtime quiz data access via Supabase.
+**Exposes:** `fetchSubjectsAndTopics()`, `fetchQuizzesByTopic(subject, topic)`, `fetchQuizById(id)`, `fetchAllQuizzes()`, `createQuiz(quiz)`, `updateQuiz(id, updates)`, `deleteQuiz(id)`.
 
 ### `src/hooks/useAuth.jsx`
 **Purpose:** Provides auth state and actions via React Context.
-**Exposes:** `{ user, signIn, signUp, signOut }` via `useAuth()` hook + `AuthProvider`.
+**Exposes:** `{ user, role, signIn, signUp, signOut }` via `useAuth()` hook + `AuthProvider`. `role` is `'student'` | `'teacher'` | `null`.
 
 ### `src/pages/LoginPage.jsx`
 Login and register form (email + password).
@@ -60,18 +54,28 @@ Lists quizzes within a subject/topic. Fetches best score per quiz from Supabase.
 Active quiz flow — one question at a time, saves attempt to Supabase on completion.
 
 ### `src/pages/HistoryPage.jsx`
-Full attempt history for the current user, sorted newest first.
+Full attempt history for the current user, sorted newest first. Quiz titles resolved from DB.
+
+### `src/pages/teacher/`
+Teacher-only pages behind `TeacherRoute`: `TeacherDashboardPage`, `TeacherQuizListPage`, `TeacherQuizFormPage`, `TeacherProgressPage`.
 
 ---
 
 ## Data Flow
 
-### Quiz loading (build time)
+### Quiz loading (runtime)
 ```
-src/quizzes/**/*.md
-  → import.meta.glob (Vite bundles raw strings)
-  → quiz-loader.js → parseQuiz() per file
-  → quizMap + quizIndex (in-memory, no network)
+HomePage mounts
+  → fetchSubjectsAndTopics() → SELECT subject, topic FROM quizzes WHERE is_published
+  → renders subject grid
+
+TopicPage mounts
+  → fetchQuizzesByTopic(subject, topic)
+  → renders quiz cards
+
+QuizPage mounts
+  → fetchQuizById(id)
+  → renders questions
 ```
 
 ### Quiz attempt (runtime)
@@ -87,17 +91,19 @@ User answers last question
 User submits LoginPage form
   → supabase.auth.signInWithPassword / signUp
   → onAuthStateChange → user state updated
-  → ProtectedRoute allows navigation to HomePage
+  → profiles.role fetched → role state set
+  → ProtectedRoute / TeacherRoute allows navigation
 ```
 
 ---
 
 ## Database Schema
 
-See `supabase/migrations/001_initial.sql`.
+See `supabase/migrations/`.
 
-**`profiles`** — one row per user (auto-created on sign-up via trigger).
-**`quiz_attempts`** — one row per completed quiz attempt. RLS enforces user isolation.
+**`profiles`** — one row per user (trigger on `auth.users`). Fields: `user_id`, `display_name`, `email`, `role` (`student`|`teacher`).
+**`quiz_attempts`** — one row per completed quiz attempt. RLS: users see only their own; teachers see all.
+**`quizzes`** — quiz content. Fields: `id`, `title`, `subject`, `topic`, `subtopic`, `difficulty`, `questions` (jsonb), `is_published`, `created_by`. RLS: students see only published; teachers full CRUD on own quizzes.
 
 ---
 
@@ -106,7 +112,7 @@ See `supabase/migrations/001_initial.sql`.
 | Dependency | Purpose |
 |---|---|
 | `@supabase/supabase-js` v2 | Auth + DB client |
-| `gray-matter` | Frontmatter parser for .md quiz files |
+| `echarts` + `echarts-for-react` | Progress charts in teacher view |
 | `react-router-dom` v7 | Client-side routing |
 | `tailwindcss` v3 | Utility CSS, mobile-first |
 | `@vitejs/plugin-react` | React JSX transform |

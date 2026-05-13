@@ -19,4 +19,12 @@
 
 ## Resolved
 
-_(none yet)_
+### `gray-matter` `Buffer is not defined` in browser
+**Resolution:** Removed `gray-matter` dependency. Replaced with inline `parseFrontmatter()` in `quiz-parser.js`. Later `quiz-parser.js` and `quiz-loader.js` were removed entirely when quizzes were migrated to the DB.
+
+### Vite `import.meta.glob` deprecation warning (`as: 'raw'`)
+**Resolution:** Updated to `{ query: '?raw', import: 'default' }`. Later removed entirely with DB migration.
+
+### `quiz_attempts` join with `profiles` fails in Supabase
+**Detail:** `quiz_attempts.user_id` references `auth.users`, not `profiles` directly — PostgREST cannot infer the join.
+**Resolution:** Replaced single joined query with two parallel queries + client-side merge in `TeacherProgressPage`.

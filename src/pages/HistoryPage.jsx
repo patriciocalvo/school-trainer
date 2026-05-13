@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { quizMap } from '../lib/quiz-loader'
+import { fetchAllQuizzes } from '../lib/quiz-service'
 
 function formatDate(isoString) {
   const d = new Date(isoString)
@@ -19,17 +19,24 @@ export function HistoryPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [attempts, setAttempts] = useState([])
+  const [quizTitles, setQuizTitles] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchHistory() {
-      const { data } = await supabase
-        .from('quiz_attempts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(100)
-      setAttempts(data ?? [])
+      const [{ data: attemptsData }, quizzes] = await Promise.all([
+        supabase
+          .from('quiz_attempts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
+          .limit(100),
+        fetchAllQuizzes().catch(() => []),
+      ])
+      const titles = {}
+      for (const q of quizzes) titles[q.id] = q.title
+      setQuizTitles(titles)
+      setAttempts(attemptsData ?? [])
       setLoading(false)
     }
     fetchHistory()
@@ -66,8 +73,7 @@ export function HistoryPage() {
         )}
 
         {attempts.map((attempt) => {
-          const quiz = quizMap[attempt.quiz_id]
-          const title = quiz?.title ?? attempt.quiz_id
+          const title = quizTitles[attempt.quiz_id] ?? attempt.quiz_id
           const pct = Math.round((attempt.score / attempt.total_questions) * 100)
 
           return (

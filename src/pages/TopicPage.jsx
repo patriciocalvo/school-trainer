@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 
 const TOPIC_META = {
   ortografia: { label: 'Ortografía', emoji: '✏️' },
+  tablas: { label: 'Tablas de multiplicar', emoji: '🔢' },
   multiplicacion: { label: 'Multiplicación', emoji: '✖️' },
   division: { label: 'División', emoji: '➗' },
 }

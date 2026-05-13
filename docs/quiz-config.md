@@ -134,3 +134,81 @@ Cuando generés un quiz:
 3. Aplicá el tuteo con "vos" en todas las preguntas dirigidas al alumno
 4. Revisá que ningún enunciado contenga regionalismos de la lista prohibida
 5. Si tenés dudas sobre si un término es apropiado, preferí uno más neutro o cotidiano
+
+---
+
+## Inserción de quizzes via Supabase MCP
+
+### Configuración del MCP en VS Code
+
+En `.vscode/mcp.json` (ya incluido en el repo):
+
+```json
+{
+  "servers": {
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-supabase"],
+      "env": {
+        "SUPABASE_URL": "${env:VITE_SUPABASE_URL}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${env:SUPABASE_SERVICE_ROLE_KEY}"
+      }
+    }
+  }
+}
+```
+
+> **Importante:** el MCP usa la `service_role` key (no la anon key) para poder bypassear RLS y hacer INSERTs directos.
+
+### Shape del registro en la tabla `quizzes`
+
+```json
+{
+  "id": "materia-tema-subtema-01",
+  "title": "🔤 Título descriptivo para el alumno",
+  "subject": "lengua",
+  "topic": "ortografia",
+  "subtopic": "letra-h",
+  "difficulty": 1,
+  "is_published": true,
+  "created_by": null,
+  "questions": [
+    {
+      "text": "Enunciado de la pregunta (tuteo con 'vos')",
+      "options": [
+        { "key": "a", "text": "Primera opción" },
+        { "key": "b", "text": "Segunda opción" },
+        { "key": "c", "text": "Tercera opción" },
+        { "key": "d", "text": "Cuarta opción" },
+        { "key": "e", "text": "Quinta opción" }
+      ],
+      "answer": "b"
+    }
+  ]
+}
+```
+
+**Reglas del shape:**
+- `id`: kebab-case, único, descriptivo. Ej: `lengua-ortografia-h-01`, `matematica-tablas-6y7-01`
+- `subject` y `topic`: siempre en **minúsculas sin acentos** (se usan como rutas URL)
+- `difficulty`: `1` = Básico, `2` = Intermedio, `3` = Avanzado
+- `questions`: array de 8 a 10 preguntas
+- `options`: exactamente 5 (claves `a` al `e`)
+- `answer`: debe coincidir exactamente con una de las claves (`"a"` a `"e"`)
+
+### Prompt modelo para pedirle a Copilot/LLM que genere un quiz
+
+```
+Generá un quiz para School Trainer con las siguientes características:
+
+- Materia: [ej: Lengua]
+- Tema: [ej: Ortografía — Uso del punto y coma]
+- Dificultad: [1 / 2 / 3]
+- Cantidad de preguntas: 10
+
+Leé docs/quiz-config.md antes de escribir. Luego usá el Supabase MCP para hacer
+un INSERT en la tabla `quizzes` con el shape exacto documentado en esa misma
+sección "Inserción de quizzes via Supabase MCP".
+
+No devuelvas el JSON en el chat — insertalo directamente en la base de datos.
+```

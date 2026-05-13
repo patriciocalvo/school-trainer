@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { quizMap } from '../lib/quiz-loader'
+import { fetchQuizById } from '../lib/quiz-service'
 import { supabase } from '../lib/supabase'
 import { QuizCard } from '../components/quiz/QuizCard'
 import { ScoreSummary } from '../components/quiz/ScoreSummary'
@@ -18,15 +18,31 @@ export function QuizPage() {
   const { quizId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const quiz = quizMap[quizId]
 
+  const [quiz, setQuiz] = useState(null)
+  const [loadingQuiz, setLoadingQuiz] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers, setAnswers] = useState({}) // questionIndex → chosen key
+  const [answers, setAnswers] = useState({})
   const [finished, setFinished] = useState(false)
   const [saving, setSaving] = useState(false)
   const [streak, setStreak] = useState(0)
   const [locked, setLocked] = useState(false)
-  const [toast, setToast] = useState(null) // { correct, milestone, streakCount, message }
+  const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    fetchQuizById(quizId)
+      .then(setQuiz)
+      .catch(console.error)
+      .finally(() => setLoadingQuiz(false))
+  }, [quizId])
+
+  if (loadingQuiz) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-400 animate-pulse">Cargando quiz...</p>
+      </div>
+    )
+  }
 
   if (!quiz) {
     return (

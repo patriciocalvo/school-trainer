@@ -143,7 +143,9 @@ export function QuizPage() {
           {showMistakes && (
             <div className="flex flex-col gap-3">
               {lastMistakes.length === 0 ? (
-                <p className="text-center text-emerald-500 font-semibold py-4">¡Sin errores la última vez! 🎯</p>
+                lastAttempt.score === lastAttempt.total_questions
+                  ? <p className="text-center text-emerald-500 font-semibold py-4">¡Sin errores la última vez! 🎯</p>
+                  : <p className="text-center text-slate-400 font-semibold py-4">No hay información disponible de los errores 📭</p>
               ) : (
                 lastMistakes.map((m, i) => (
                   <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-2">

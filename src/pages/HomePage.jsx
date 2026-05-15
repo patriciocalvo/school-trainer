@@ -1,41 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { fetchSubjectsAndTopics } from '../lib/quiz-service'
-
-const SUBJECT_META = {
-  lengua:      { label: 'Lengua',      emoji: '📖', color: 'from-violet-400 to-indigo-500' },
-  matematica:  { label: 'Matemática',  emoji: '🔢', color: 'from-emerald-400 to-teal-500' },
-  ciencias:    { label: 'Ciencias',    emoji: '🔬', color: 'from-yellow-400 to-orange-500' },
-  historia:    { label: 'Historia',    emoji: '🏛️', color: 'from-amber-400 to-yellow-500' },
-  ingles:      { label: 'Inglés',      emoji: '🌎', color: 'from-sky-400 to-blue-500' },
-  deportes:    { label: 'Deportes',    emoji: '⚽', color: 'from-rose-400 to-pink-500' },
-}
-
-function getSubjectMeta(subject) {
-  return (
-    SUBJECT_META[subject] ?? {
-      label: subject.charAt(0).toUpperCase() + subject.slice(1),
-      emoji: '📚',
-      color: 'from-orange-400 to-amber-500',
-    }
-  )
-}
+import { fetchSubjects } from '../lib/quiz-service'
 
 export function HomePage() {
   const navigate = useNavigate()
   const { user, role, signOut } = useAuth()
-  const [subjectIndex, setSubjectIndex] = useState({})
+  const [subjects, setSubjects] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchSubjectsAndTopics()
-      .then(setSubjectIndex)
+    fetchSubjects()
+      .then(setSubjects)
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
 
-  const subjects = Object.keys(subjectIndex)
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -71,33 +51,19 @@ export function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {subjects.map((subject) => {
-              const meta = getSubjectMeta(subject)
-              const topicCount = Object.keys(subjectIndex[subject]).length
-              const quizCount = Object.values(subjectIndex[subject]).reduce((a, b) => a + b, 0)
-              const topics = Object.keys(subjectIndex[subject])
-
-              return (
-                <button
-                  key={subject}
-                  onClick={() => {
-                    if (topics.length === 1) {
-                      navigate(`/subject/${subject}/${topics[0]}`)
-                    } else {
-                      navigate(`/subject/${subject}`)
-                    }
-                  }}
-                  className={`w-full bg-gradient-to-br ${meta.color} rounded-3xl p-6 text-left text-white shadow-lg transition-all active:scale-95`}
-                >
-                  <div className="text-5xl mb-3">{meta.emoji}</div>
-                  <h3 className="text-2xl font-extrabold">{meta.label}</h3>
-                  <p className="text-white/80 text-sm mt-1">
-                    {topicCount} {topicCount === 1 ? 'tema' : 'temas'} · {quizCount}{' '}
-                    {quizCount === 1 ? 'quiz' : 'quizzes'}
-                  </p>
-                </button>
-              )
-            })}
+            {subjects.map((subject) => (
+              <button
+                key={subject.id}
+                onClick={() => navigate(`/subject/${subject.id}`)}
+                className={`w-full bg-gradient-to-br ${subject.color} rounded-3xl p-6 text-left text-white shadow-lg transition-all active:scale-95`}
+              >
+                <div className="text-5xl mb-3">{subject.emoji}</div>
+                <h3 className="text-2xl font-extrabold">{subject.label}</h3>
+                <p className="text-white/80 text-sm mt-1">
+                  {subject.quizCount} {subject.quizCount === 1 ? 'quiz' : 'quizzes'}
+                </p>
+              </button>
+            ))}
           </div>
         )}
 

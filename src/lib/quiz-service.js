@@ -1,34 +1,87 @@
 import { supabase } from './supabase'
 
 /**
- * Returns subject → topic → count map for the home page.
- * @returns {Promise<Record<string, Record<string, number>>>}
+ * Returns subjects from st_subjects joined with quiz counts (published only, filtered to those with quizzes).
+ * @returns {Promise<Array<{id, label, emoji, color, quizCount}>>}
  */
-export async function fetchSubjectsAndTopics() {
-  const { data, error } = await supabase
-    .from('st_quizzes')
-    .select('subject, topic')
-    .eq('is_published', true)
-  if (error) throw error
-  const index = {}
-  for (const { subject, topic } of data) {
-    if (!index[subject]) index[subject] = {}
-    index[subject][topic] = (index[subject][topic] ?? 0) + 1
+export async function fetchSubjects() {
+  const [{ data: subjects, error: subjectsError }, { data: counts, error: countsError }] =
+    await Promise.all([
+      supabase.from('st_subjects').select('id, label, emoji, color, sort_order').order('sort_order'),
+      supabase.from('st_quizzes').select('subject').eq('is_published', true),
+    ])
+  if (subjectsError) throw subjectsError
+  if (countsError) throw countsError
+  const countMap = {}
+  for (const { subject } of counts) {
+    countMap[subject] = (countMap[subject] ?? 0) + 1
   }
-  return index
+  return subjects
+    .filter((s) => countMap[s.id])
+    .map((s) => ({ ...s, quizCount: countMap[s.id] ?? 0 }))
 }
 
 /**
- * Returns all quizzes for a given subject + topic (published only).
+ * Returns ALL subjects from st_subjects (no quiz-count filter). For teacher use.
+ * @returns {Promise<Array<{id, label, emoji, color, sort_order}>>}
+ */
+export async function fetchAllSubjects() {
+  const { data, error } = await supabase
+    .from('st_subjects')
+    .select('id, label, emoji, color, sort_order')
+    .order('sort_order')
+  if (error) throw error
+  return data
+}
+
+/**
+ * Creates a new subject in st_subjects.
+ * @param {{ id, label, emoji }} subject
+ */
+export async function createSubject({ id, label, emoji }) {
+  const { data: existing } = await supabase.from('st_subjects').select('sort_order').order('sort_order', { ascending: false }).limit(1).single()
+  const sort_order = (existing?.sort_order ?? 0) + 10
+  const { data, error } = await supabase
+    .from('st_subjects')
+    .insert({ id, label, emoji, color: 'slate', sort_order })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+/**
+ * Deletes a subject, reassigning its quizzes to "varios".
+ * @param {string} id
+ */
+export async function deleteSubject(id) {
+  // Ensure "varios" subject exists
+  await supabase.from('st_subjects').upsert(
+    { id: 'varios', label: 'Varios', emoji: '📦', color: 'slate', sort_order: 999 },
+    { onConflict: 'id', ignoreDuplicates: true }
+  )
+  // Move quizzes
+  const { error: moveError } = await supabase
+    .from('st_quizzes')
+    .update({ subject: 'varios' })
+    .eq('subject', id)
+  if (moveError) throw moveError
+  // Delete subject
+  const { error } = await supabase.from('st_subjects').delete().eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * Returns all quizzes for a given subject (published only).
  * @returns {Promise<Array>}
  */
-export async function fetchQuizzesByTopic(subject, topic) {
+export async function fetchQuizzesBySubject(subject) {
   const { data, error } = await supabase
     .from('st_quizzes')
     .select('id, title, subject, topic, subtopic, difficulty, questions')
     .eq('subject', subject)
-    .eq('topic', topic)
     .eq('is_published', true)
+    .order('topic')
     .order('difficulty', { ascending: true })
   if (error) throw error
   return data

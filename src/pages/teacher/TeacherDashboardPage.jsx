@@ -34,6 +34,15 @@ export function TeacherDashboardPage() {
         </div>
 
         <button
+          onClick={() => navigate('/teacher/ai')}
+          className="w-full bg-gradient-to-br from-violet-400 to-fuchsia-500 rounded-3xl p-6 text-left text-white shadow-lg transition-all active:scale-95"
+        >
+          <div className="text-5xl mb-3">✨</div>
+          <h3 className="text-2xl font-extrabold">Generar con IA</h3>
+          <p className="text-white/80 text-sm mt-1">Creá un quiz nuevo usando inteligencia artificial</p>
+        </button>
+
+        <button
           onClick={() => navigate('/teacher/quizzes')}
           className="w-full bg-gradient-to-br from-indigo-400 to-violet-500 rounded-3xl p-6 text-left text-white shadow-lg transition-all active:scale-95"
         >

@@ -2,13 +2,14 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
-import { TopicPage } from './pages/TopicPage'
+import { SubjectPage } from './pages/SubjectPage'
 import { QuizPage } from './pages/QuizPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { TeacherDashboardPage } from './pages/teacher/TeacherDashboardPage'
 import { TeacherQuizListPage } from './pages/teacher/TeacherQuizListPage'
 import { TeacherQuizFormPage } from './pages/teacher/TeacherQuizFormPage'
 import { TeacherProgressPage } from './pages/teacher/TeacherProgressPage'
+import { TeacherQuizAIPage } from './pages/teacher/TeacherQuizAIPage'
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth()
@@ -51,7 +52,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-          <Route path="/subject/:subject/:topic" element={<ProtectedRoute><TopicPage /></ProtectedRoute>} />
+          <Route path="/subject/:subject" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
           <Route path="/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
           <Route path="/teacher" element={<TeacherRoute><TeacherDashboardPage /></TeacherRoute>} />
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/teacher/quizzes/new" element={<TeacherRoute><TeacherQuizFormPage /></TeacherRoute>} />
           <Route path="/teacher/quizzes/:id/edit" element={<TeacherRoute><TeacherQuizFormPage /></TeacherRoute>} />
           <Route path="/teacher/progress" element={<TeacherRoute><TeacherProgressPage /></TeacherRoute>} />
+          <Route path="/teacher/ai" element={<TeacherRoute><TeacherQuizAIPage /></TeacherRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

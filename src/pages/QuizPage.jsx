@@ -21,6 +21,11 @@ export function QuizPage() {
 
   const [quiz, setQuiz] = useState(null)
   const [loadingQuiz, setLoadingQuiz] = useState(true)
+  const [phase, setPhase] = useState('quiz') // 'preview' | 'quiz'
+  const [lastAttempt, setLastAttempt] = useState(null)
+  const [lastMistakes, setLastMistakes] = useState([])
+  const [showMistakes, setShowMistakes] = useState(false)
+  const [loadingMistakes, setLoadingMistakes] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState({})
   const [finished, setFinished] = useState(false)
@@ -30,11 +35,31 @@ export function QuizPage() {
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    fetchQuizById(quizId)
-      .then(setQuiz)
-      .catch(console.error)
-      .finally(() => setLoadingQuiz(false))
-  }, [quizId])
+    async function load() {
+      try {
+        const q = await fetchQuizById(quizId)
+        setQuiz(q)
+        if (user && q) {
+          const { data } = await supabase
+            .from('st_quiz_attempts')
+            .select('score, total_questions, completed_at')
+            .eq('user_id', user.id)
+            .eq('quiz_id', quizId)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+          if (data && data.length > 0) {
+            setLastAttempt(data[0])
+            setPhase('preview')
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoadingQuiz(false)
+      }
+    }
+    load()
+  }, [quizId, user])
 
   if (loadingQuiz) {
     return (
@@ -60,6 +85,94 @@ export function QuizPage() {
 
   const question = quiz.questions[currentIndex]
   const totalQuestions = quiz.questions.length
+
+  async function handleShowMistakes() {
+    if (lastMistakes.length > 0) { setShowMistakes(true); return }
+    setLoadingMistakes(true)
+    try {
+      const { data } = await supabase
+        .from('st_quiz_mistakes')
+        .select('question_text, correct_key, correct_text, given_key, given_text')
+        .eq('user_id', user.id)
+        .eq('quiz_id', quizId)
+        .gte('created_at', lastAttempt.completed_at)
+        .order('question_idx', { ascending: true })
+      setLastMistakes(data ?? [])
+      setShowMistakes(true)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingMistakes(false)
+    }
+  }
+
+  if (phase === 'preview') {
+    const pct = Math.round((lastAttempt.score / lastAttempt.total_questions) * 100)
+    const scoreColor = pct >= 80 ? 'text-emerald-500' : pct >= 50 ? 'text-amber-500' : 'text-rose-400'
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-slate-600 text-xl">←</button>
+          <div>
+            <h1 className="text-base font-bold text-slate-800">{quiz.title}</h1>
+            <p className="text-xs text-slate-400">{quiz.subject} · {quiz.topic}</p>
+          </div>
+        </header>
+        <main className="flex-1 p-6 flex flex-col gap-5 max-w-lg mx-auto w-full">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-center">
+            <p className="text-sm text-slate-400 mb-1">Tu último puntaje</p>
+            <p className={`text-6xl font-extrabold ${scoreColor}`}>{lastAttempt.score}</p>
+            <p className="text-slate-400 text-base">de {lastAttempt.total_questions} correctas</p>
+          </div>
+
+          <button
+            onClick={() => setPhase('quiz')}
+            className="w-full bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-bold rounded-2xl py-4 text-lg transition-all"
+          >
+            🔄 Rehacer el quiz
+          </button>
+
+          <button
+            onClick={handleShowMistakes}
+            disabled={loadingMistakes}
+            className="w-full bg-rose-50 border-2 border-rose-200 hover:border-rose-400 active:scale-95 text-rose-600 font-bold rounded-2xl py-4 text-lg transition-all disabled:opacity-50"
+          >
+            {loadingMistakes ? 'Cargando...' : '📋 Ver errores de la última vez'}
+          </button>
+
+          {showMistakes && (
+            <div className="flex flex-col gap-3">
+              {lastMistakes.length === 0 ? (
+                <p className="text-center text-emerald-500 font-semibold py-4">¡Sin errores la última vez! 🎯</p>
+              ) : (
+                lastMistakes.map((m, i) => (
+                  <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-2">
+                    <p className="text-sm font-semibold text-slate-700 leading-snug">{m.question_text}</p>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-rose-400 uppercase tracking-wide w-16 flex-shrink-0 pt-0.5">Tu resp.</span>
+                        <span className="text-sm text-rose-500 flex items-start gap-1">
+                          <span className="font-bold">{m.given_key})</span>
+                          <span>{m.given_text}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-emerald-500 uppercase tracking-wide w-16 flex-shrink-0 pt-0.5">Correcta</span>
+                        <span className="text-sm text-emerald-600 flex items-start gap-1 font-semibold">
+                          <span className="font-bold">{m.correct_key})</span>
+                          <span>{m.correct_text}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+    )
+  }
 
   async function handleAnswer(chosenKey) {
     if (locked) return

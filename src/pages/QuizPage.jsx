@@ -100,6 +100,25 @@ export function QuizPage() {
           total_questions: totalQuestions,
           answers_json: newAnswers,
         })
+        // Save individual mistakes
+        const mistakes = quiz.questions
+          .map((q, i) => ({ q, i, given: newAnswers[i] }))
+          .filter(({ q, given }) => given !== q.answer)
+          .map(({ q, i, given }) => ({
+            user_id: user.id,
+            quiz_id: quiz.id,
+            subject: quiz.subject,
+            topic: quiz.topic,
+            question_idx: i,
+            question_text: q.text,
+            correct_key: q.answer,
+            correct_text: q.options.find((o) => o.key === q.answer)?.text ?? '',
+            given_key: given,
+            given_text: q.options.find((o) => o.key === given)?.text ?? '',
+          }))
+        if (mistakes.length > 0) {
+          await supabase.from('st_quiz_mistakes').insert(mistakes)
+        }
         setSaving(false)
         setFinished(true)
       } else {
@@ -123,6 +142,10 @@ export function QuizPage() {
       (acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0),
       0
     )
+    const wrongQuestions = quiz.questions
+      .map((q, i) => ({ ...q, idx: i, given: answers[i] }))
+      .filter((q) => q.given !== q.answer)
+
     return (
       <div className="min-h-screen flex flex-col bg-slate-50">
         <div className="flex-1 p-6 flex flex-col justify-center max-w-lg mx-auto w-full">
@@ -132,6 +155,7 @@ export function QuizPage() {
             quizTitle={quiz.title}
             subject={quiz.subject}
             topic={quiz.topic}
+            wrongQuestions={wrongQuestions}
             onRetry={handleRetry}
           />
         </div>
